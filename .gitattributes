@@ -1,5 +1,10 @@
 index.html text eol=lf
-github-pages/** text eol=lf
+github-pages/** -text
+github-pages/**/*.js text eol=lf
+github-pages/**/*.css text eol=lf
+github-pages/**/*.svg text eol=lf
+github-pages/**/*.json text eol=lf
+github-pages/**/*.md text eol=lf
 static-site/** text eol=lf
 public/semantic-worker.js text eol=lf
 public/favicon.svg text eol=lf

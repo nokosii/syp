@@ -28,7 +28,7 @@ for (const [name, bytes] of wanted) {
   } else { await mkdir(path.dirname(target), { recursive: true }); await writeFile(target, bytes); }
 }
 for (const name of previous) {
-  if (typeof name !== "string" || !/^github-pages\/(assets\/[^/]+|[^/]+)$/.test(name) || name.includes("..")) throw new Error("Unsafe Pages manifest path");
+  if (typeof name !== "string" || !/^github-pages\/(?:(?:assets|illustrations)\/[^/]+|[^/]+)$/.test(name) || name.includes("..")) throw new Error("Unsafe Pages manifest path");
   if (!wanted.has(name)) {
     if (checking) throw new Error(`Obsolete Pages artifact: ${name}`);
     await unlink(path.join(root, name)).catch(error => { if (error.code !== "ENOENT") throw error; });
