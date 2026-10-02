@@ -25,7 +25,7 @@ self.onmessage = ({ data }) => {
         self.postMessage({ id, result: vectors });
       } else if (action === "generate") {
         if (!navigator.gpu || !await navigator.gpu.requestAdapter()) throw new Error("這個瀏覽器未提供 WebGPU。可改用支援的 Chrome／Edge，來源摘錄仍可閱讀。");
-        self.postMessage({ id, status: "準備回答模型，首次下載約 400 MB，可能需要數分鐘。" });
+        self.postMessage({ id, status: "準備回答模型，首次下載約 750 MB，可能需要數分鐘。" });
         generator ??= await pipeline("text-generation", "onnx-community/Qwen2.5-0.5B-Instruct", { dtype: "q4", device: "webgpu", progress_callback: progress(id) });
         self.postMessage({ id, status: "根據來源整理回答…" });
         const output = await generator(payload.messages, { max_new_tokens: 320, do_sample: false, repetition_penalty: 1.1 });
