@@ -1,0 +1,15 @@
+import { pipeline, env } from "@huggingface/transformers";
+import { readFileSync, writeFileSync } from "node:fs";
+import { ragMessages } from "../lib/knowledge.ts";
+env.cacheDir = ".model-cache";
+const index = JSON.parse(readFileSync("lib/demo-index.json", "utf8"));
+const doc = index.documents.find(d => d.id === "demo-coast");
+const sources = doc.chunks.map((c, i) => ({...c,title:doc.title,position:i,isDemo:true}));
+console.log("Loading the browser RAG generation model for a CPU smoke check…");
+const generator = await pipeline("text-generation", "onnx-community/Qwen2.5-0.5B-Instruct", {dtype:"q4"});
+const output = await generator(ragMessages("石滬田野紀錄應保存哪些內容？", sources), {max_new_tokens:180, do_sample:false, repetition_penalty:1.1});
+const answer = output[0]?.generated_text?.at(-1)?.content;
+writeFileSync(".test-output/generation.txt",answer || "");
+console.log(answer);
+if (!answer || !/\[[12]\]/.test(answer)) throw new Error("No usable cited answer produced");
+console.log("Cited RAG generation smoke check passed (CPU; browser WebGPU checked separately).");
