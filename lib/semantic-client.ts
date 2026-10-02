@@ -23,6 +23,12 @@ export async function embed(texts: string[], type: "query" | "passage", progress
   return await run("embed", { texts, type }, progress) as number[][];
 }
 export async function generate(question: string, sources: SearchResult[], progress: (message: string) => void) {
-  const { ragMessages } = await import("./knowledge");
-  return await run("generate", { messages: ragMessages(question, sources) }, progress) as string;
+  const { ragMessages, formatRagAnswer } = await import("./knowledge");
+  // A small local model handles one record at a time more reliably. Citation
+  // numbers are derived from the actual search list, never invented by the LLM.
+  const primary = sources[0]?.documentId;
+  const chosen = sources.map((s, i) => ({source:s, number:i + 1})).filter(s => s.source.documentId === primary).slice(0, 2);
+  if (!chosen.length) throw new Error("沒有可供整理的來源。");
+  const answer = await run("generate", { messages: ragMessages(question, chosen.map(s => s.source)) }, progress) as string;
+  return formatRagAnswer(answer, chosen.map(s => s.number), chosen.some(s => s.source.isDemo));
 }

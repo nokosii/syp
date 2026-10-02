@@ -1,6 +1,6 @@
 import { pipeline, env } from "@huggingface/transformers";
 import { readFileSync, writeFileSync } from "node:fs";
-import { ragMessages } from "../lib/knowledge.ts";
+import { ragMessages, formatRagAnswer } from "../lib/knowledge.ts";
 env.cacheDir = ".model-cache";
 const index = JSON.parse(readFileSync("lib/demo-index.json", "utf8"));
 const doc = index.documents.find(d => d.id === "demo-coast");
@@ -11,5 +11,6 @@ const output = await generator(ragMessages("石滬田野紀錄應保存哪些內
 const answer = output[0]?.generated_text?.at(-1)?.content;
 writeFileSync(".test-output/generation.txt",answer || "");
 console.log(answer);
-if (!answer || !/\[[12]\]/.test(answer)) throw new Error("No usable cited answer produced");
+if (!answer || !/[。！？]/.test(answer)) throw new Error("No usable answer produced");
+console.log(formatRagAnswer(answer,[1,2],true));
 console.log("Cited RAG generation smoke check passed (CPU; browser WebGPU checked separately).");

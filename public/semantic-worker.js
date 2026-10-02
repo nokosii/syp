@@ -28,12 +28,10 @@ self.onmessage = ({ data }) => {
         self.postMessage({ id, status: "準備回答模型，首次下載約 750 MB，可能需要數分鐘。" });
         generator ??= await pipeline("text-generation", "onnx-community/Qwen2.5-0.5B-Instruct", { dtype: "q4", device: "webgpu", progress_callback: progress(id) });
         self.postMessage({ id, status: "根據來源整理回答…" });
-        const output = await generator(payload.messages, { max_new_tokens: 320, do_sample: false, repetition_penalty: 1.1 });
+        const output = await generator(payload.messages, { max_new_tokens: 180, do_sample: false, repetition_penalty: 1.1 });
         const answer = output[0]?.generated_text?.at(-1)?.content;
         if (typeof answer !== "string" || !answer.trim()) throw new Error("模型未能整理回答，請閱讀下方來源摘錄。");
-        const citations = [...answer.matchAll(/\[(\d+)\]/g)].map(m => Number(m[1]));
-        const sourceCount = (payload.messages[1].content.match(/^\[\d+\]/gm) || []).length;
-        if (!citations.length || citations.some(n => n < 1 || n > sourceCount)) throw new Error("模型沒有提供可核對的來源編號，請以原文摘錄為準。");
+        if (!/[。！？]/.test(answer) && !answer.includes("目前資料不足")) throw new Error("模型未能把來源整理成完整回答，請以原文摘錄為準。");
         self.postMessage({ id, result: answer.trim() });
       } else throw new Error("不支援的操作。");
     } catch (error) {
