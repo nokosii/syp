@@ -1,11 +1,12 @@
 import { type SearchResult } from "./knowledge";
+import { assetPath } from "./site-runtime";
 interface WorkerReply { id: number; status?: string; result?: number[][] | string; error?: string }
 let worker: Worker | undefined;
 let serial = 0;
 const pending = new Map<number, { resolve: (value: number[][] | string) => void; reject: (error: Error) => void; progress: (message: string) => void }>();
 function run(action: string, payload: unknown, progress: (message: string) => void): Promise<number[][] | string> {
   if (!worker) {
-    worker = new Worker("/semantic-worker.js", { type: "module" });
+    worker = new Worker(assetPath("semantic-worker.js"), { type: "module" });
     worker.onmessage = ({ data }: MessageEvent<WorkerReply>) => {
       const item = pending.get(data.id); if (!item) return;
       if (data.status) item.progress(data.status);

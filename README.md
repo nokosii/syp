@@ -3,6 +3,7 @@
 新楊平社區大學的教學、田野及口述成果收錄系統。以新屋、楊梅、平鎮為主要區域，保存原文與附件，提供中文語意檢索，以及可回查來源的 RAG 回答。
 
 - 線上系統：https://syp-local-knowledge.changehakka.chatgpt.site
+- GitHub Pages 公開展示：https://nokosii.github.io/syp/
 - 原始碼：https://github.com/nokosii/syp
 - 辦學區域依據：[新楊平社區大學介紹](https://www.syp.org.tw/content.php?id=intro)
 
@@ -43,6 +44,21 @@
 程式碼流程及資料治理詳見 [系統設計](docs/SYSTEM_DESIGN.md)。
 
 ## 本機開發
+
+### GitHub Pages 公開展示版
+
+GitHub Pages 使用相同的 React 介面、語意模型、檢索排序及 RAG 回答。六份已存在於公開儲存庫的示範紀錄與十二個段落索引隨網站發布，查詢向量比對與回答生成均在瀏覽器執行，不需登入即可體驗。正式資料、私人草稿、附件與編輯金鑰不包含在展示版。
+
+「成果收錄」及「主系統登入」連回原線上系統。展示版不會自動同步主系統後續新增的資料；若要公開正式紀錄，必須先審核授權、去識別化，另外匯出適合公開的資料集。主系統仍維持原有私人存取設定。
+
+儲存庫目前以 `main` 分支根目錄發布 Pages。根目錄 `index.html`、`.nojekyll` 及 `github-pages/` 是可直接發布的編譯產物，原始入口在 `static-site/`。修改介面或展示索引後，執行 `npm run build:pages`，把生成檔案與原始碼一起提交；推送至 `main` 後 GitHub 會自動發布。CI 的 `npm run check:pages` 會確認產物與原始碼相符。所有資源與引用網址均支援 `/syp/` 子路徑。
+
+```powershell
+npm run build:pages
+npm run check:pages
+```
+
+### 完整系統開發
 
 需要 Node.js 24+、npm 與 Git。
 

@@ -1,0 +1,5 @@
+index.html text eol=lf
+github-pages/** text eol=lf
+static-site/** text eol=lf
+public/semantic-worker.js text eol=lf
+public/favicon.svg text eol=lf

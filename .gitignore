@@ -49,4 +49,5 @@ next-env.d.ts
 /.local-editor-key.txt
 /.model-cache/
 /.test-output/
+/.pages-dist/
 *.tsbuildinfo
