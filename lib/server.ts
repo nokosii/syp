@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { demoGovernance } from "./governance";
 import { chunkText, EMBEDDING_MODEL, validEmbedding, type KnowledgeDocument, type ChunkInput } from "./knowledge";
 
 export class ApiError extends Error { constructor(public status: number, message: string) { super(message); } }
@@ -60,12 +61,14 @@ export function handleError(error: unknown) {
   return response({ error: "服務暫時無法使用。您輸入的內容仍保留，請稍後重試。" }, 503);
 }
 export type DbDocument = {
+  access_level: "public" | "editor"; ai_allowed: number; review_state: "pending" | "approved" | "withdrawn";
+  community: string; cultural_context: string; review_note: string;
   id: string; title: string; summary: string; content: string; region: string; category: string;
   author: string; course: string; recorded_at: string; tags: string; source_url: string; license: string;
   consent: number; status: "draft" | "published"; is_demo: number; created_at: string; updated_at: string; chunk_count?: number;
 };
 export function documentFromRow(row: DbDocument, content = false): KnowledgeDocument {
-  return { id: row.id, title: row.title, summary: row.summary, ...(content ? { content: row.content } : {}),
+  return { governance: row.is_demo ? demoGovernance : { accessLevel: row.access_level, aiAllowed: !!row.ai_allowed, reviewState: row.review_state, community: row.community, culturalContext: row.cultural_context, reviewNote: "" }, id: row.id, title: row.title, summary: row.summary, ...(content ? { content: row.content } : {}),
     region: row.region, category: row.category, author: row.author, course: row.course, recordedAt: row.recorded_at,
     tags: JSON.parse(row.tags), sourceUrl: row.source_url, license: row.license, consent: !!row.consent,
     status: row.status, isDemo: !!row.is_demo, createdAt: row.created_at, updatedAt: row.updated_at, chunkCount: row.chunk_count };

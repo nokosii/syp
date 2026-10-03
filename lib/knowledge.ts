@@ -6,6 +6,7 @@ export const CATEGORIES = ["田野紀錄", "教學成果", "口述歷史", "地�
 export const MAX_DOCUMENT_LENGTH = 20000;
 
 export interface KnowledgeDocument {
+  governance?: import("./governance").Governance;
   id: string; title: string; summary: string; content?: string; region: string;
   category: string; author: string; course: string; recordedAt: string;
   tags: string[]; sourceUrl: string; license: string; consent: boolean;

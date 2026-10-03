@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PUBLIC_SQL } from "@/lib/governance";
 import { CATEGORIES, REGIONS, MAX_DOCUMENT_LENGTH, EMBEDDING_MODEL } from "@/lib/knowledge";
 import { ApiError, database, documentFromRow, editor, handleError, jsonBody, requireEditor, response, validateChunks, type DbDocument } from "@/lib/server";
 
@@ -11,6 +12,8 @@ export const documentInput = z.object({
   sourceUrl: z.string().max(1000).refine(s => s === "" || /^https?:\/\//.test(s) && URL.canParse(s)),
   license: z.enum(["僅供教學研究，引用請註明來源", "CC BY 4.0", "CC BY-NC 4.0", "保留所有權利"]),
   consent: z.boolean(), status: z.enum(["draft", "published"]),
+  expectedUpdatedAt: z.string().optional(),
+  aiPreparation: z.boolean().default(false),
   model: z.literal(EMBEDDING_MODEL), chunks: z.array(z.object({ content: z.string(), embedding: z.array(z.number()) })).max(90),
 });
 export async function GET(request: Request) {
@@ -19,7 +22,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const manage = url.searchParams.get("manage") === "1";
     if (manage && !isEditor) throw new ApiError(401, "請先以編輯金鑰登入。");
-    const rows = await database().prepare(`SELECT d.*, (SELECT COUNT(*) FROM chunks c WHERE c.document_id=d.id) AS chunk_count FROM documents d ${manage ? "" : "WHERE d.status='published'"} ORDER BY d.created_at DESC LIMIT 500`).all<DbDocument>();
+    const rows = await database().prepare(`SELECT d.*, (SELECT COUNT(*) FROM chunks c WHERE c.document_id=d.id) AS chunk_count FROM documents d ${manage ? "" : `WHERE ${PUBLIC_SQL}`} ORDER BY d.created_at DESC LIMIT 500`).all<DbDocument>();
     return response({ documents: rows.results.map(row => documentFromRow(row)), model: EMBEDDING_MODEL });
   } catch (error) { return handleError(error); }
 }
@@ -30,7 +33,9 @@ export async function POST(request: Request) {
     if (!parsed.success) throw new ApiError(400, "請檢查必填欄位、內容長度及日期格式。");
     const d = parsed.data;
     if (d.status === "published" && !d.consent) throw new ApiError(400, "發布前請確認授權與受訪者同意。");
-    validateChunks(d.content, d.chunks, d.model);
+    if (d.status === "published") throw new ApiError(400, "請先存為草稿，再於文化治理完成社群審閱與發布。");
+    if (d.aiPreparation) validateChunks(d.content, d.chunks, d.model);
+    else if (d.chunks.length) throw new ApiError(400, "未允許 AI 處理時不得提交向量索引。");
     const db = database();
     const count = await db.prepare("SELECT COUNT(*) AS n FROM chunks").first<{n: number}>();
     if ((count?.n ?? 0) + d.chunks.length > 2000) throw new ApiError(409, "索引容量已達第一版上限，請先擴充向量儲存服務。");
@@ -39,7 +44,8 @@ export async function POST(request: Request) {
       db.prepare("INSERT INTO documents (id,title,summary,content,region,category,author,course,recorded_at,tags,source_url,license,consent,status,is_demo,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
         .bind(id,d.title,d.summary,d.content,d.region,d.category,d.author,d.course,d.recordedAt,JSON.stringify(d.tags),d.sourceUrl,d.license,d.consent?1:0,d.status,0,now,now),
       ...d.chunks.map((c, i) => db.prepare("INSERT INTO chunks (id,document_id,position,content,embedding,model) VALUES (?,?,?,?,?,?)").bind(crypto.randomUUID(),id,i,c.content,JSON.stringify(c.embedding),d.model)),
+      db.prepare("INSERT INTO governance_events (id,document_id,action,actor,reason,snapshot,created_at) VALUES (?,?,?,?,?,?,?)").bind(crypto.randomUUID(),id,"created","編輯（共用金鑰）","建立草稿，等待社群審閱",JSON.stringify({...d,chunks:undefined,model:undefined}),now),
     ]);
-    return response({ id }, 201);
+    return response({ id, updatedAt: now }, 201);
   } catch (error) { return handleError(error); }
 }

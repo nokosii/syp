@@ -8,6 +8,13 @@
       "when": 1790902312847,
       "tag": "0000_low_terror",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791070470129,
+      "tag": "0001_strange_patriot",
+      "breakpoints": true
     }
   ]
 }

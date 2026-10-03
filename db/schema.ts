@@ -18,6 +18,12 @@ export const documents = sqliteTable("documents", {
   isDemo: integer("is_demo").notNull().default(0),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+  accessLevel: text("access_level").notNull().default("editor"),
+  aiAllowed: integer("ai_allowed").notNull().default(0),
+  reviewState: text("review_state").notNull().default("pending"),
+  community: text("community").notNull().default(""),
+  culturalContext: text("cultural_context").notNull().default(""),
+  reviewNote: text("review_note").notNull().default(""),
 }, table => [index("idx_documents_status_region").on(table.status, table.region)]);
 
 export const chunks = sqliteTable("chunks", {
@@ -37,3 +43,13 @@ export const attachments = sqliteTable("attachments", {
   size: integer("size").notNull(),
   objectKey: text("object_key").notNull(),
 }, table => [index("idx_attachments_document").on(table.documentId)]);
+
+export const governanceEvents = sqliteTable("governance_events", {
+  id: text("id").primaryKey(),
+  documentId: text("document_id").notNull().references(() => documents.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  actor: text("actor").notNull(),
+  reason: text("reason").notNull(),
+  snapshot: text("snapshot").notNull(),
+  createdAt: text("created_at").notNull(),
+}, table => [index("idx_governance_document").on(table.documentId)]);

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { EMBEDDING_MODEL, REGIONS, CATEGORIES, validEmbedding } from "@/lib/knowledge";
 import { retrieve } from "@/lib/retrieval";
+import { AI_SQL } from "@/lib/governance";
 import { ApiError, database, handleError, jsonBody, response } from "@/lib/server";
 const input = z.object({ query: z.string().trim().min(2).max(500), vector: z.array(z.number()).optional(), model: z.string().optional(), region: z.enum(REGIONS).optional(), category: z.enum(CATEGORIES).optional(), includeDemo: z.boolean().default(true) });
 type SearchRow = { id: string; document_id: string; title: string; content: string; position: number; region: string; category: string; author: string; is_demo: number; embedding: string; model: string };
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
     if (!parsed.success) throw new ApiError(400, "請輸入 2–500 字的問題。");
     const q = parsed.data, semantic = q.vector !== undefined;
     if (semantic && (q.model !== EMBEDDING_MODEL || !validEmbedding(q.vector))) throw new ApiError(400, "查詢向量或模型不相符。");
-    const where = ["d.status='published'"]; const params: (string | number)[] = [];
+    const where = [AI_SQL]; const params: (string | number)[] = [];
     if (q.region) { where.push("d.region=?"); params.push(q.region); }
     if (q.category) { where.push("d.category=?"); params.push(q.category); }
     if (!q.includeDemo) where.push("d.is_demo=0");

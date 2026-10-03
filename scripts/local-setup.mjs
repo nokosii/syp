@@ -19,5 +19,13 @@ if (probe.status !== 0) {
     const result = spawnSync(process.execPath,[...args,"--file",`drizzle/${entry.tag}.sql`],{stdio:"inherit",env:{...process.env,WRANGLER_SEND_METRICS:"false"}});
     if (result.status !== 0) process.exit(result.status ?? 1);
   }
+} else {
+  // Earlier local previews bootstrapped migration 0000 without a migration
+  // ledger. Upgrade that known schema once; hosted history is untouched.
+  const governance = spawnSync(process.execPath,[...args,"--command","SELECT access_level FROM documents LIMIT 1"],{encoding:"utf8",env:{...process.env,WRANGLER_SEND_METRICS:"false"}});
+  if (governance.status !== 0) {
+    const result = spawnSync(process.execPath,[...args,"--file","drizzle/0001_strange_patriot.sql"],{stdio:"inherit",env:{...process.env,WRANGLER_SEND_METRICS:"false"}});
+    if (result.status !== 0) process.exit(result.status ?? 1);
+  }
 }
 console.log("Local database is ready. The editor key is in .local-editor-key.txt (never commit it). Run npm run dev.");

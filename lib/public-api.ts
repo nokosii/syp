@@ -1,6 +1,7 @@
 import index from "./demo-index.json" with { type: "json" };
 import { EMBEDDING_MODEL, type KnowledgeDocument } from "./knowledge.ts";
 import { retrieve, type IndexedSource, type RetrievalQuery } from "./retrieval.ts";
+import { demoGovernance } from "./governance.ts";
 
 // Only the original examples already public in Git are included. Private D1
 // records, drafts, attachments and editor credentials never enter this bundle.
@@ -12,7 +13,7 @@ const sources: IndexedSource[] = published.flatMap(d => d.chunks.map((chunk, pos
 })));
 function documentView(d: typeof published[number]): KnowledgeDocument {
   const { chunks, ...document } = d;
-  return { ...document, status: "published", chunkCount: chunks.length, attachments: [] };
+  return { ...document, governance: demoGovernance, status: "published", chunkCount: chunks.length, attachments: [] };
 }
 export async function publicApi(path: string, options?: RequestInit): Promise<unknown> {
   const url = new URL(path, "https://public-snapshot.invalid");
