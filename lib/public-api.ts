@@ -1,3 +1,4 @@
+import {demoLibrary} from "./libraries.ts";
 import index from "./demo-index.json" with { type: "json" };
 import { EMBEDDING_MODEL, type KnowledgeDocument } from "./knowledge.ts";
 import { retrieve, type IndexedSource, type RetrievalQuery } from "./retrieval.ts";
@@ -13,7 +14,7 @@ const sources: IndexedSource[] = published.flatMap(d => d.chunks.map((chunk, pos
 })));
 function documentView(d: typeof published[number]): KnowledgeDocument {
   const { chunks, ...document } = d;
-  return { ...document, governance: demoGovernance, status: "published", chunkCount: chunks.length, attachments: [] };
+  return { ...document,library:demoLibrary(document.id), governance: demoGovernance, status: "published", chunkCount: chunks.length, attachments: [] };
 }
 export async function publicApi(path: string, options?: RequestInit): Promise<unknown> {
   const url = new URL(path, "https://public-snapshot.invalid");

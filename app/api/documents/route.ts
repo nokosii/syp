@@ -1,9 +1,13 @@
 import { z } from "zod";
+import { LIBRARIES } from "@/lib/libraries";
+import { currentMember, reviewer, actor } from "@/lib/server";
 import { PUBLIC_SQL } from "@/lib/governance";
 import { CATEGORIES, REGIONS, MAX_DOCUMENT_LENGTH, EMBEDDING_MODEL } from "@/lib/knowledge";
 import { ApiError, database, documentFromRow, editor, handleError, jsonBody, requireEditor, response, validateChunks, type DbDocument } from "@/lib/server";
 
 export const documentInput = z.object({
+  library:z.enum(LIBRARIES.map(l=>l.id) as [string,...string[]]).default("ecology"),
+  libraryFields:z.record(z.string().max(3000)).refine(v=>Object.keys(v).length<=10).default({}),
   title: z.string().trim().min(2).max(150), summary: z.string().trim().min(10).max(500),
   content: z.string().trim().min(30).max(MAX_DOCUMENT_LENGTH), region: z.enum(REGIONS), category: z.enum(CATEGORIES),
   author: z.string().trim().min(1).max(100), course: z.string().trim().max(150),
@@ -22,7 +26,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const manage = url.searchParams.get("manage") === "1";
     if (manage && !isEditor) throw new ApiError(401, "請先以編輯金鑰登入。");
-    const rows = await database().prepare(`SELECT d.*, (SELECT COUNT(*) FROM chunks c WHERE c.document_id=d.id) AS chunk_count FROM documents d ${manage ? "" : `WHERE ${PUBLIC_SQL}`} ORDER BY d.created_at DESC LIMIT 500`).all<DbDocument>();
+    const member=await currentMember(request), broad=await reviewer(request);
+    const restriction=manage&&!broad?"WHERE d.owner_id=? OR EXISTS(SELECT 1 FROM collaborators WHERE document_id=d.id AND member_id=?)":manage?"":`WHERE ${PUBLIC_SQL}`;
+    const statement=database().prepare(`SELECT d.*, (SELECT COUNT(*) FROM chunks c WHERE c.document_id=d.id) AS chunk_count FROM documents d ${restriction} ORDER BY d.created_at DESC LIMIT 500`);
+    const rows=await (manage&&!broad?statement.bind(member!.id,member!.id):statement).all<DbDocument>();
     return response({ documents: rows.results.map(row => documentFromRow(row)), model: EMBEDDING_MODEL });
   } catch (error) { return handleError(error); }
 }
@@ -41,10 +48,10 @@ export async function POST(request: Request) {
     if ((count?.n ?? 0) + d.chunks.length > 2000) throw new ApiError(409, "索引容量已達第一版上限，請先擴充向量儲存服務。");
     const id = crypto.randomUUID(), now = new Date().toISOString();
     await db.batch([
-      db.prepare("INSERT INTO documents (id,title,summary,content,region,category,author,course,recorded_at,tags,source_url,license,consent,status,is_demo,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-        .bind(id,d.title,d.summary,d.content,d.region,d.category,d.author,d.course,d.recordedAt,JSON.stringify(d.tags),d.sourceUrl,d.license,d.consent?1:0,d.status,0,now,now),
+      db.prepare("INSERT INTO documents (id,title,summary,content,region,category,author,course,recorded_at,tags,source_url,license,consent,status,is_demo,created_at,updated_at,library,library_fields,owner_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+        .bind(id,d.title,d.summary,d.content,d.region,d.category,d.author,d.course,d.recordedAt,JSON.stringify(d.tags),d.sourceUrl,d.license,d.consent?1:0,d.status,0,now,now,d.library,JSON.stringify(d.libraryFields),(await currentMember(request))?.id??null),
       ...d.chunks.map((c, i) => db.prepare("INSERT INTO chunks (id,document_id,position,content,embedding,model) VALUES (?,?,?,?,?,?)").bind(crypto.randomUUID(),id,i,c.content,JSON.stringify(c.embedding),d.model)),
-      db.prepare("INSERT INTO governance_events (id,document_id,action,actor,reason,snapshot,created_at) VALUES (?,?,?,?,?,?,?)").bind(crypto.randomUUID(),id,"created","編輯（共用金鑰）","建立草稿，等待社群審閱",JSON.stringify({...d,chunks:undefined,model:undefined}),now),
+      db.prepare("INSERT INTO governance_events (id,document_id,action,actor,reason,snapshot,created_at) VALUES (?,?,?,?,?,?,?)").bind(crypto.randomUUID(),id,"created",await actor(request),"建立草稿，等待社群審閱",JSON.stringify({...d,chunks:undefined,model:undefined}),now),
     ]);
     return response({ id, updatedAt: now }, 201);
   } catch (error) { return handleError(error); }

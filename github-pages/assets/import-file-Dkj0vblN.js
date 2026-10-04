@@ -1,4 +1,0 @@
-import{n as e}from"./index-CMsiWwDM.js";async function t(t){if(t.size>10485760)throw Error(`匯入檔案上限為 10 MB。`);if(/\.(txt|md)$/i.test(t.name))return(await t.text()).trim();if(/\.pdf$/i.test(t.name)){let n=await e(()=>import(`https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs`),[]);n.GlobalWorkerOptions.workerSrc=`https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs`;let r=await n.getDocument({data:new Uint8Array(await t.arrayBuffer()),cMapUrl:`https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/cmaps/`,cMapPacked:!0}).promise;try{if(r.numPages>100)throw Error(`請先拆分超過 100 頁的 PDF。`);let e=[];for(let t=1;t<=r.numPages;t++){let n=await(await r.getPage(t)).getTextContent();e.push(n.items.map(e=>(e.str??``)+(e.hasEOL?`
-`:` `)).join(``))}let t=e.join(`
-
-`).trim();if(t.length<30)throw Error(`這份 PDF 可能是掃描影像。請先完成 OCR，再匯入文字。`);return t}finally{await r.destroy()}}throw Error(`文字匯入支援 TXT、Markdown 與含文字的 PDF；影音和照片可作為附件保存。`)}export{t as importText};

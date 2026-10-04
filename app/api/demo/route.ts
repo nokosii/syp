@@ -1,8 +1,8 @@
 import index from "@/lib/demo-index.json";
-import { database, handleError, requireEditor, response } from "@/lib/server";
+import { database, handleError, requireReviewer, response } from "@/lib/server";
 export async function POST(request: Request) {
   try {
-    await requireEditor(request); const db = database();
+    await requireReviewer(request); const db = database();
     let inserted = 0;
     for (const d of index.documents) {
       if (await db.prepare("SELECT id FROM documents WHERE id=?").bind(d.id).first()) continue;

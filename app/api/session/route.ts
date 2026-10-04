@@ -1,5 +1,5 @@
-import { createSession, editor, handleError, jsonBody, response, sameOrigin } from "@/lib/server";
-export async function GET(request: Request) { return response({ editor: await editor(request) }); }
+import { currentMember, reviewer, createSession, editor, handleError, jsonBody, response, sameOrigin } from "@/lib/server";
+export async function GET(request: Request) { return response({ editor: await editor(request),reviewer:await reviewer(request),member:await currentMember(request) }); }
 export async function POST(request: Request) {
   try {
     sameOrigin(request);

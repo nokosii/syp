@@ -2,6 +2,10 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const documents = sqliteTable("documents", {
   id: text("id").primaryKey(),
+  library: text("library").notNull().default(""),
+  libraryFields: text("library_fields").notNull().default("{}"),
+  ownerId: text("owner_id"),
+  submittedAt: text("submitted_at").notNull().default(""),
   title: text("title").notNull(),
   summary: text("summary").notNull(),
   content: text("content").notNull(),
@@ -53,3 +57,19 @@ export const governanceEvents = sqliteTable("governance_events", {
   snapshot: text("snapshot").notNull(),
   createdAt: text("created_at").notNull(),
 }, table => [index("idx_governance_document").on(table.documentId)]);
+
+export const members = sqliteTable("members", {
+ id: text("id").primaryKey(), email: text("email").notNull(), name: text("name").notNull(),
+ role: text("role").notNull().default("teacher"), state: text("state").notNull().default("pending"),
+ createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull(),
+});
+export const collaborators = sqliteTable("collaborators", {
+ id: text("id").primaryKey(), documentId: text("document_id").notNull().references(()=>documents.id,{onDelete:"cascade"}),
+ memberId: text("member_id").notNull().references(()=>members.id,{onDelete:"cascade"}),
+},t=>[index("idx_collaborators_document").on(t.documentId,t.memberId)]);
+export const comments = sqliteTable("comments", {
+ id:text("id").primaryKey(),documentId:text("document_id").notNull().references(()=>documents.id,{onDelete:"cascade"}),
+ actor:text("actor").notNull(),content:text("content").notNull(),createdAt:text("created_at").notNull(),
+},t=>[index("idx_comments_document").on(t.documentId)]);
+
+export const imports = sqliteTable("imports", {id:text("id").primaryKey(),fingerprint:text("fingerprint").notNull(),result:text("result").notNull(),createdAt:text("created_at").notNull()});

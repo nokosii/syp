@@ -6,6 +6,8 @@ export const CATEGORIES = ["田野紀錄", "教學成果", "口述歷史", "地�
 export const MAX_DOCUMENT_LENGTH = 20000;
 
 export interface KnowledgeDocument {
+  permissions?: {edit:boolean;review:boolean};
+  library?: string; libraryFields?: Record<string,string>; ownerId?: string | null; submittedAt?:string;
   governance?: import("./governance").Governance;
   id: string; title: string; summary: string; content?: string; region: string;
   category: string; author: string; course: string; recordedAt: string;

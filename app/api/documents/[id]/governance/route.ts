@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ApiError, database, editor, handleError, jsonBody, requireEditor, response, validateChunks, type DbDocument } from "@/lib/server";
 import { EMBEDDING_MODEL } from "@/lib/knowledge";
+import { documentAccess,requireReviewer,actor } from "@/lib/server";
 type Context = { params: Promise<{id: string}> };
 const input = z.object({
   action: z.enum(["review", "withdraw"]), expectedUpdatedAt: z.string().min(1),
@@ -12,6 +13,7 @@ export async function GET(request: Request, context: Context) {
   try {
     if (!await editor(request)) throw new ApiError(401, "請先以編輯金鑰登入。");
     const {id} = await context.params;
+    if(!await documentAccess(request,id))throw new ApiError(403,"無權讀取這份成果的版本。");
     const row = await database().prepare("SELECT * FROM documents WHERE id=?").bind(id).first<DbDocument>();
     if (!row) throw new ApiError(404, "找不到成果。");
     const events = await database().prepare("SELECT id,action,actor,reason,snapshot,created_at AS createdAt FROM governance_events WHERE document_id=? ORDER BY created_at DESC LIMIT 100").bind(id).all();
@@ -20,7 +22,7 @@ export async function GET(request: Request, context: Context) {
 }
 export async function PATCH(request: Request, context: Context) {
   try {
-    await requireEditor(request);
+    await requireReviewer(request);
     const {id} = await context.params, db = database();
     const parsed = input.safeParse(await jsonBody(request, 10000));
     if (!parsed.success) throw new ApiError(400, "請填寫至少 10 字的審閱或撤回理由。");
@@ -43,7 +45,7 @@ export async function PATCH(request: Request, context: Context) {
       db.prepare("UPDATE documents SET access_level=?,ai_allowed=?,review_state=?,community=?,cultural_context=?,review_note=?,status=?,consent=?,updated_at=? WHERE id=? AND updated_at=?")
         .bind(withdraw?"editor":d.accessLevel,!withdraw&&d.accessLevel==="public"&&d.aiAllowed?1:0,withdraw?"withdrawn":"approved",withdraw?row.community:d.community,withdraw?row.cultural_context:d.culturalContext,d.reviewNote,!withdraw&&d.accessLevel==="public"?"published":"draft",withdraw?0:row.consent,now,id,d.expectedUpdatedAt),
       db.prepare("INSERT INTO governance_events (id,document_id,action,actor,reason,snapshot,created_at) SELECT ?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM documents WHERE id=? AND updated_at=?)")
-        .bind(crypto.randomUUID(),id,withdraw?"withdrawn":"reviewed","編輯（共用金鑰）",d.reviewNote,snapshot,now,id,now),
+        .bind(crypto.randomUUID(),id,withdraw?"withdrawn":"reviewed",await actor(request),d.reviewNote,snapshot,now,id,now),
     ]);
     if (!results[0].meta.changes) throw new ApiError(409, "成果已有新版本，請重新載入。");
     return response({id,updatedAt:now});

@@ -15,6 +15,13 @@
       "when": 1791070470129,
       "tag": "0001_strange_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791122244998,
+      "tag": "0002_conscious_scream",
+      "breakpoints": true
     }
   ]
 }

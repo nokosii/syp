@@ -27,5 +27,7 @@ if (probe.status !== 0) {
     const result = spawnSync(process.execPath,[...args,"--file","drizzle/0001_strange_patriot.sql"],{stdio:"inherit",env:{...process.env,WRANGLER_SEND_METRICS:"false"}});
     if (result.status !== 0) process.exit(result.status ?? 1);
   }
+  const membership = spawnSync(process.execPath,[...args,"--command","SELECT library FROM documents LIMIT 1"],{encoding:"utf8",env:{...process.env,WRANGLER_SEND_METRICS:"false"}});
+  if(membership.status!==0){const result=spawnSync(process.execPath,[...args,"--file","drizzle/0002_conscious_scream.sql"],{stdio:"inherit",env:{...process.env,WRANGLER_SEND_METRICS:"false"}});if(result.status!==0)process.exit(result.status??1);}
 }
 console.log("Local database is ready. The editor key is in .local-editor-key.txt (never commit it). Run npm run dev.");
